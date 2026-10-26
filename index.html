@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <!-- Чтобы страница нормально выглядела на телефоне -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart City Dashboard</title>
+  <!-- Подключаем файл со стилями -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="header">
+    <h1>🏙️ Smart City</h1>
+    <p class="subtitle">Панель мониторинга города в реальном времени</p>
+    <p class="clock" id="clock">--:--:--</p>
+  </header>
+
+  <main>
+    <!-- Сетка карточек. Каждая карточка — один «датчик» города.
+         id нужны, чтобы JavaScript мог найти элемент и поменять в нём число. -->
+    <section class="grid">
+      <article class="card" id="card-traffic">
+        <h2>🚦 Трафик</h2>
+        <p class="value"><span id="traffic">--</span> <small>машин/мин</small></p>
+        <p class="status" id="traffic-status">загрузка…</p>
+      </article>
+
+      <article class="card" id="card-air">
+        <h2>🌫️ Качество воздуха</h2>
+        <p class="value"><span id="air">--</span> <small>AQI</small></p>
+        <p class="status" id="air-status">загрузка…</p>
+      </article>
+
+      <article class="card" id="card-parking">
+        <h2>🅿️ Парковки</h2>
+        <p class="value"><span id="parking">--</span> <small>свободно из 200</small></p>
+        <p class="status" id="parking-status">загрузка…</p>
+      </article>
+
+      <article class="card" id="card-light">
+        <h2>💡 Освещение</h2>
+        <p class="value"><span id="light">--</span> <small>% фонарей включено</small></p>
+        <p class="status" id="light-status">загрузка…</p>
+      </article>
+    </section>
+
+    <!-- Журнал событий: сюда пишем предупреждения -->
+    <section class="log">
+      <h2>📋 Журнал событий</h2>
+      <ul id="log-list"></ul>
+    </section>
+  </main>
+
+  <!-- Скрипт подключаем в конце, когда все элементы уже есть на странице -->
+  <script src="app.js"></script>
+</body>
+</html>
