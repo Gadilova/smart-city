@@ -76,12 +76,20 @@ body {
   color: var(--muted);
 }
 
+.source {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 0.75rem;
+  opacity: 0.8;
+}
+
 /* Эти классы JavaScript добавляет карточке в зависимости от состояния */
 .card.ok     { border-left-color: var(--ok); }
 .card.warn   { border-left-color: var(--warn); }
 .card.danger { border-left-color: var(--danger); }
 
-.log {
+/* Общий стиль для больших блоков: график и журнал */
+.panel {
   max-width: 1100px;
   margin: 24px auto 0;
   background: var(--card);
@@ -89,9 +97,46 @@ body {
   padding: 20px;
 }
 
-.log h2 {
+.panel h2 {
   margin-top: 0;
   font-size: 1.1rem;
+}
+
+/* Leaflet требует, чтобы у контейнера карты была высота, иначе карта будет 0px */
+#map {
+  height: 400px;
+  border-radius: 8px;
+}
+
+/* Карта OpenStreetMap светлая. Инвертируем цвета только у плиток карты,
+   чтобы она подходила к тёмному дашборду (кружки датчиков не меняются) */
+.leaflet-tile-pane {
+  filter: invert(1) hue-rotate(180deg) brightness(0.9) contrast(0.9);
+}
+
+.legend {
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+/* Цветные точки в легенде */
+.dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-left: 8px;
+}
+
+.dot.ok     { background: var(--ok); }
+.dot.warn   { background: var(--warn); }
+.dot.danger { background: var(--danger); }
+
+/* Chart.js подстраивает график под размер этой коробки */
+.chart-box {
+  position: relative;
+  height: 300px;
 }
 
 #log-list {

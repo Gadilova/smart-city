@@ -6,6 +6,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Smart City Dashboard</title>
   <!-- Подключаем файл со стилями -->
+  <!-- Стили библиотеки Leaflet (без них карта развалится на кусочки) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -29,11 +31,20 @@
         <h2>🌫️ Качество воздуха</h2>
         <p class="value"><span id="air">--</span> <small>AQI</small></p>
         <p class="status" id="air-status">загрузка…</p>
+        <!-- Откуда взялось число: из API или из симуляции -->
+        <p class="source" id="air-source">источник: загрузка…</p>
+      </article>
+
+      <article class="card" id="card-weather">
+        <h2>🌡️ Погода</h2>
+        <p class="value"><span id="weather">--</span> <small>°C</small></p>
+        <p class="status" id="weather-status">загрузка…</p>
+        <p class="source" id="weather-source">источник: загрузка…</p>
       </article>
 
       <article class="card" id="card-parking">
         <h2>🅿️ Парковки</h2>
-        <p class="value"><span id="parking">--</span> <small>свободно из 200</small></p>
+        <p class="value"><span id="parking">--</span> <small>свободно из <span id="parking-capacity">--</span></small></p>
         <p class="status" id="parking-status">загрузка…</p>
       </article>
 
@@ -44,13 +55,37 @@
       </article>
     </section>
 
+    <!-- Карта: Leaflet вставит её внутрь этого пустого div -->
+    <section class="panel">
+      <h2>🗺️ Карта датчиков</h2>
+      <div id="map"></div>
+      <p class="legend">
+        <span class="dot ok"></span> норма
+        <span class="dot warn"></span> внимание
+        <span class="dot danger"></span> проблема
+        · нажми на кружок, чтобы увидеть показания
+      </p>
+    </section>
+
+    <!-- График истории: Chart.js рисует его на холсте canvas -->
+    <section class="panel">
+      <h2>📈 История показаний</h2>
+      <div class="chart-box">
+        <canvas id="history-chart"></canvas>
+      </div>
+    </section>
+
     <!-- Журнал событий: сюда пишем предупреждения -->
-    <section class="log">
+    <section class="panel log">
       <h2>📋 Журнал событий</h2>
       <ul id="log-list"></ul>
     </section>
   </main>
 
+  <!-- Библиотека Chart.js из интернета (CDN). Подключаем её ДО app.js,
+       потому что app.js ею пользуется -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
   <!-- Скрипт подключаем в конце, когда все элементы уже есть на странице -->
   <script src="app.js"></script>
 </body>
