@@ -67,6 +67,33 @@
       </p>
     </section>
 
+    <!-- Обращения жителей: форма отправляет данные на сервер (POST), список показывает их -->
+    <section class="panel">
+      <h2>📣 Обращения жителей</h2>
+      <div class="reports">
+        <form id="report-form" class="report-form">
+          <p class="hint" id="report-location">1. Нажми на карту выше, чтобы выбрать место</p>
+
+          <label for="report-category">2. Что случилось?</label>
+          <select id="report-category">
+            <option value="road">🕳️ Яма на дороге</option>
+            <option value="light">💡 Не горит фонарь</option>
+            <option value="trash">🗑️ Мусор</option>
+            <option value="other">❗ Другое</option>
+          </select>
+
+          <label for="report-description">3. Опиши проблему</label>
+          <textarea id="report-description" rows="3" maxlength="300"
+                    placeholder="Например: большая яма у остановки"></textarea>
+
+          <button type="submit" id="report-submit" disabled>Отправить обращение</button>
+          <p class="form-message" id="report-message"></p>
+        </form>
+
+        <ul id="report-list" class="report-list"></ul>
+      </div>
+    </section>
+
     <!-- График истории: Chart.js рисует его на холсте canvas -->
     <section class="panel">
       <h2>📈 История показаний</h2>

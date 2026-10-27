@@ -52,6 +52,19 @@ def init_db():
                 light      INTEGER NOT NULL,
                 created_at TEXT NOT NULL
             );
+
+            -- Обращения жителей: «яма на дороге», «не горит фонарь» и т.п.
+            -- Их не удаляем через сутки, как показания: обращения нужно хранить
+            CREATE TABLE IF NOT EXISTS reports (
+                id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                category    TEXT NOT NULL,
+                description TEXT NOT NULL,
+                lat         REAL NOT NULL,
+                lon         REAL NOT NULL,
+                status      TEXT NOT NULL DEFAULT 'new',  -- new (новое) / resolved (решено)
+                created_at  TEXT NOT NULL,
+                resolved_at TEXT
+            );
             """
         )
 
@@ -92,6 +105,44 @@ def latest_readings():
             """
         ).fetchall()
     return {row["sensor_id"]: dict(row) for row in rows}
+
+
+def create_report(category, description, lat, lon):
+    """Сохраняет новое обращение и возвращает его целиком (вместе с id, который выдала база)."""
+    with connect() as conn:
+        cursor = conn.execute(
+            "INSERT INTO reports (category, description, lat, lon, created_at) VALUES (?, ?, ?, ?, ?)",
+            (category, description, lat, lon, now()),
+        )
+        report_id = cursor.lastrowid  # id новой строки
+    return get_report(report_id)
+
+
+def get_report(report_id):
+    """Одно обращение по id или None, если такого нет."""
+    with connect() as conn:
+        row = conn.execute("SELECT * FROM reports WHERE id = ?", (report_id,)).fetchone()
+    return dict(row) if row else None
+
+
+def list_reports(limit):
+    """Последние обращения: сначала новые, потом решённые; внутри — от свежих к старым."""
+    with connect() as conn:
+        rows = conn.execute(
+            "SELECT * FROM reports ORDER BY status = 'resolved', id DESC LIMIT ?",
+            (limit,),
+        ).fetchall()
+    return [dict(row) for row in rows]
+
+
+def resolve_report(report_id):
+    """Отмечает обращение решённым. Возвращает обновлённое обращение или None, если такого нет."""
+    with connect() as conn:
+        conn.execute(
+            "UPDATE reports SET status = 'resolved', resolved_at = ? WHERE id = ? AND status = 'new'",
+            (now(), report_id),
+        )
+    return get_report(report_id)
 
 
 def city_history(limit):

@@ -133,6 +133,129 @@ body {
 .dot.warn   { background: var(--warn); }
 .dot.danger { background: var(--danger); }
 
+/* ===== Обращения жителей ===== */
+
+/* Две колонки: форма слева, список справа; на телефоне — друг под другом */
+.reports {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 24px;
+}
+
+.report-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.report-form label {
+  color: var(--muted);
+  font-size: 0.9rem;
+  margin-top: 8px;
+}
+
+.report-form select,
+.report-form textarea {
+  font: inherit;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid #334155;
+  border-radius: 8px;
+  padding: 8px;
+}
+
+.report-form button {
+  font: inherit;
+  margin-top: 8px;
+  padding: 10px;
+  border: none;
+  border-radius: 8px;
+  background: #3b82f6;
+  color: white;
+  cursor: pointer;
+}
+
+/* Кнопка неактивна, пока не выбрано место на карте */
+.report-form button:disabled {
+  background: #334155;
+  color: var(--muted);
+  cursor: not-allowed;
+}
+
+.hint {
+  margin: 0;
+  color: var(--warn);
+}
+
+.hint.done {
+  color: var(--ok);
+}
+
+.form-message {
+  margin: 0;
+  min-height: 1.2em;
+  font-size: 0.9rem;
+}
+
+.form-message.error   { color: var(--danger); }
+.form-message.success { color: var(--ok); }
+
+.report-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.report-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid #334155;
+}
+
+.report-list li.resolved {
+  opacity: 0.5;
+}
+
+.report-list small {
+  color: var(--muted);
+}
+
+.report-list button {
+  font: inherit;
+  font-size: 0.8rem;
+  padding: 6px 10px;
+  border: 1px solid var(--ok);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ok);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.empty {
+  color: var(--muted);
+}
+
+/* Значок обращения на карте: эмодзи в кружке */
+.report-icon {
+  font-size: 18px;
+  line-height: 28px;
+  text-align: center;
+  background: #1e293b;
+  border: 2px solid #3b82f6;
+  border-radius: 50%;
+}
+
+.report-icon.resolved {
+  border-color: var(--ok);
+  opacity: 0.6;
+}
+
 /* Chart.js подстраивает график под размер этой коробки */
 .chart-box {
   position: relative;

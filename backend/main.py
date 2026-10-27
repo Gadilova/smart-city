@@ -12,8 +12,11 @@ import asyncio
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, Query
+from typing import Literal
+
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel, Field
 
 import database
 import sensors
@@ -134,6 +137,48 @@ def get_city():
 def get_history(limit: int = Query(20, ge=1, le=500)):
     """История сводок для графика. ?limit=50 — сколько последних точек вернуть (от 1 до 500)."""
     return database.city_history(limit)
+
+
+# ===== Обращения жителей =====
+
+# Pydantic-модель описывает, какие данные мы ждём от браузера.
+# FastAPI сам проверит запрос по этому описанию и, если что-то не так,
+# ответит ошибкой 422 с объяснением — наша функция даже не будет вызвана.
+# Правило: сервер никогда не доверяет данным из браузера, их легко подделать.
+class ReportIn(BaseModel):
+    category: Literal["road", "light", "trash", "other"]  # только одно из этих слов
+    description: str = Field(min_length=3, max_length=300)
+    # Координаты должны быть в районе Алматы, а не где-нибудь в океане
+    lat: float = Field(ge=43.0, le=43.5)
+    lon: float = Field(ge=76.6, le=77.3)
+
+
+@app.get("/api/reports")
+def get_reports(limit: int = Query(50, ge=1, le=200)):
+    """Список обращений: сначала новые, потом решённые."""
+    return database.list_reports(limit)
+
+
+# POST — «создать что-то новое». Данные приходят в теле запроса в виде JSON.
+# status_code=201 означает «Created» — стандартный ответ, когда что-то создано.
+@app.post("/api/reports", status_code=201)
+def create_report(report: ReportIn):
+    """Новое обращение жителя."""
+    description = report.description.strip()
+    if len(description) < 3:
+        raise HTTPException(status_code=422, detail="Описание слишком короткое")
+    return database.create_report(report.category, description, report.lat, report.lon)
+
+
+# PATCH — «изменить часть существующего». {report_id} в адресе — это параметр пути:
+# запрос на /api/reports/5/resolve вызовет функцию с report_id=5
+@app.patch("/api/reports/{report_id}/resolve")
+def resolve_report(report_id: int):
+    """Отметить обращение решённым."""
+    report = database.resolve_report(report_id)
+    if report is None:
+        raise HTTPException(status_code=404, detail="Обращение не найдено")
+    return report
 
 
 # Отдаём файлы frontend (index.html, style.css, app.js) по адресу "/".

@@ -172,23 +172,211 @@ function updateMap(sensors) {
   }
 }
 
-// ===== 6. Обновление всей страницы =====
+// ===== 6. Обращения жителей =====
+
+const REPORT_CATEGORIES = {
+  road: { emoji: "🕳️", title: "Яма на дороге" },
+  light: { emoji: "💡", title: "Не горит фонарь" },
+  trash: { emoji: "🗑️", title: "Мусор" },
+  other: { emoji: "❗", title: "Другое" },
+};
+
+// Текст от жителей вставляем в HTML окошка на карте. Если там окажется <script> или <img onerror=...>,
+// браузер выполнит его — это атака XSS. Поэтому заменяем опасные символы на безопасные коды
+function escapeHtml(text) {
+  return text
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+// Понятные объяснения для ошибок проверки (422) по имени поля, которое не прошло проверку
+const FIELD_ERRORS = {
+  category: "неизвестная категория",
+  description: "описание должно быть от 3 до 300 символов",
+  lat: "место должно быть в пределах Алматы",
+  lon: "место должно быть в пределах Алматы",
+};
+
+// Отправляет запрос, который что-то меняет на сервере (POST / PATCH), с данными в формате JSON
+async function sendJSON(method, path, body) {
+  const response = await fetch(path, {
+    method: method,
+    headers: { "Content-Type": "application/json" }, // говорим серверу: «в теле запроса JSON»
+    body: body ? JSON.stringify(body) : undefined,  // объект JavaScript → текст JSON
+  });
+  const data = await response.json();
+  if (!response.ok) {
+    // FastAPI присылает причину ошибки в поле detail: строкой или списком проблем.
+    // В списке у каждой проблемы есть loc — путь к полю, например ["body", "lat"]
+    if (!Array.isArray(data.detail)) throw new Error(data.detail);
+    const reasons = data.detail.map((problem) => FIELD_ERRORS[problem.loc.at(-1)] || problem.msg);
+    throw new Error([...new Set(reasons)].join("; ")); // Set убирает повторы (lat и lon дают одну фразу)
+  }
+  return data;
+}
+
+// --- Выбор места на карте ---
+let selectedPlace = null; // { lat, lon } или null
+let draftMarker = null;   // временный кружок там, где нажали
+
+map.on("click", (event) => {
+  selectedPlace = { lat: event.latlng.lat, lon: event.latlng.lng };
+
+  if (draftMarker) draftMarker.remove();
+  draftMarker = L.circleMarker(event.latlng, { radius: 12, color: "#3b82f6", dashArray: "4", fillOpacity: 0.2 })
+    .addTo(map);
+
+  const hint = document.getElementById("report-location");
+  hint.textContent = "📍 Место выбрано: " + selectedPlace.lat.toFixed(4) + ", " + selectedPlace.lon.toFixed(4);
+  hint.classList.add("done");
+  document.getElementById("report-submit").disabled = false;
+});
+
+function showFormMessage(text, type) {
+  const message = document.getElementById("report-message");
+  message.textContent = text;
+  message.className = "form-message " + type;
+}
+
+// --- Отправка формы ---
+document.getElementById("report-form").addEventListener("submit", async (event) => {
+  event.preventDefault(); // без этого браузер перезагрузил бы страницу (так формы работают по умолчанию)
+
+  const description = document.getElementById("report-description").value.trim();
+  if (description.length < 3) {
+    showFormMessage("Опиши проблему хотя бы парой слов", "error");
+    return;
+  }
+
+  try {
+    const report = await sendJSON("POST", "/api/reports", {
+      category: document.getElementById("report-category").value,
+      description: description,
+      lat: selectedPlace.lat,
+      lon: selectedPlace.lon,
+    });
+
+    showFormMessage("✅ Обращение №" + report.id + " отправлено", "success");
+    addLog("📣 Новое обращение №" + report.id + ": " + REPORT_CATEGORIES[report.category].title);
+
+    // Очищаем форму для следующего обращения
+    document.getElementById("report-description").value = "";
+    draftMarker.remove();
+    draftMarker = null;
+    selectedPlace = null;
+    document.getElementById("report-submit").disabled = true;
+    const hint = document.getElementById("report-location");
+    hint.textContent = "1. Нажми на карту выше, чтобы выбрать место";
+    hint.classList.remove("done");
+
+    loadReports();
+  } catch (error) {
+    // Например, место выбрано за пределами Алматы — сервер ответит 422 и объяснит почему
+    showFormMessage("❌ Не удалось отправить: " + error.message, "error");
+  }
+});
+
+// --- Список обращений и значки на карте ---
+const reportMarkers = {}; // значки на карте по id обращения
+let lastReportsJSON = ""; // чтобы не перерисовывать список, если ничего не изменилось
+
+async function resolveReport(id) {
+  try {
+    await sendJSON("PATCH", "/api/reports/" + id + "/resolve");
+    addLog("✅ Обращение №" + id + " решено");
+    loadReports();
+  } catch (error) {
+    addLog("❌ Не удалось отметить обращение №" + id + ": " + error.message);
+  }
+}
+
+function renderReports(reports) {
+  const json = JSON.stringify(reports);
+  if (json === lastReportsJSON) return;
+  lastReportsJSON = json;
+
+  const list = document.getElementById("report-list");
+  list.innerHTML = "";
+
+  if (reports.length === 0) {
+    list.innerHTML = '<li class="empty">Обращений пока нет — нажми на карту и сообщи о проблеме</li>';
+  }
+
+  reports.forEach((report) => {
+    const category = REPORT_CATEGORIES[report.category];
+    const resolved = report.status === "resolved";
+
+    // Элементы списка собираем через textContent: он вставляет текст как есть, без выполнения HTML
+    const item = document.createElement("li");
+    if (resolved) item.classList.add("resolved");
+
+    const text = document.createElement("div");
+    const title = document.createElement("div");
+    title.textContent = category.emoji + " №" + report.id + " · " + report.description;
+    const meta = document.createElement("small");
+    meta.textContent = category.title + " · " + report.created_at.slice(11, 16) + (resolved ? " · решено" : " · новое");
+    text.append(title, meta);
+    item.append(text);
+
+    if (!resolved) {
+      const button = document.createElement("button");
+      button.textContent = "✓ Решено";
+      button.addEventListener("click", () => resolveReport(report.id));
+      item.append(button);
+    }
+
+    list.append(item);
+
+    // Значок на карте: создаём один раз, потом только меняем вид
+    const icon = L.divIcon({
+      className: "report-icon" + (resolved ? " resolved" : ""),
+      html: resolved ? "✅" : category.emoji,
+      iconSize: [28, 28],
+    });
+    if (!reportMarkers[report.id]) {
+      reportMarkers[report.id] = L.marker([report.lat, report.lon], { icon: icon }).addTo(map);
+    } else {
+      reportMarkers[report.id].setIcon(icon);
+    }
+    reportMarkers[report.id].bindPopup(
+      "<b>" + category.emoji + " Обращение №" + report.id + "</b><br>" +
+      escapeHtml(report.description) + "<br>" +
+      "<small>" + category.title + " · " + (resolved ? "решено" : "новое") + "</small>"
+    );
+  });
+}
+
+async function loadReports() {
+  try {
+    renderReports(await getJSON("/api/reports"));
+  } catch (error) {
+    // Ошибку связи с сервером уже показывает refresh(), здесь молчим
+  }
+}
+
+// ===== 7. Обновление всей страницы =====
 
 let serverOnline = null; // null — ещё не знаем, true / false — последний результат
 
 async function refresh() {
   try {
     // Promise.all отправляет три запроса одновременно и ждёт все ответы
-    const [city, sensors, history] = await Promise.all([
+    const [city, sensors, history, reports] = await Promise.all([
       getJSON("/api/city"),
       getJSON("/api/sensors"),
       getJSON("/api/history?limit=" + MAX_POINTS),
+      getJSON("/api/reports"), // обращения тоже обновляем: их могли отправить из другой вкладки
     ]);
 
     if (serverOnline !== true) {
       addLog("🌐 Подключено к серверу");
       serverOnline = true;
     }
+
+    renderReports(reports);
 
     if (!city.ready) return; // сервер только запустился, первых замеров ещё нет
 
@@ -208,7 +396,7 @@ function updateClock() {
   document.getElementById("clock").textContent = new Date().toLocaleTimeString("ru-RU");
 }
 
-// ===== 7. Запуск =====
+// ===== 8. Запуск =====
 addLog("✅ Система запущена");
 updateClock();
 setInterval(updateClock, 1000); // часы каждую секунду
