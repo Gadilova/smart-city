@@ -9,3 +9,5 @@ __pycache__/
 
 # Служебные файлы macOS
 .DS_Store
+.pytest_cache/
+*.db-journal

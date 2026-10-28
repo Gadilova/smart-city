@@ -1,0 +1,35 @@
+# GitHub Actions: после каждого push и pull request GitHub сам запускает тесты
+# на своём компьютере (runner). Результат виден во вкладке Actions и на значке в README.
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # Проверяем на самой старой поддерживаемой версии Python и на новой
+        python-version: ["3.9", "3.12"]
+
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: backend/requirements*.txt
+
+      - name: Установить библиотеки
+        run: pip install -r requirements.txt -r requirements-dev.txt
+
+      - name: Запустить тесты
+        run: python -m pytest -v

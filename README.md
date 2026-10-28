@@ -4,6 +4,8 @@
 
 **Панель мониторинга «умного города» Алматы в реальном времени**
 
+[![Tests](https://github.com/Gadilova/smart-city/actions/workflows/tests.yml/badge.svg)](https://github.com/Gadilova/smart-city/actions/workflows/tests.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](LICENSE)
 ![Python](https://img.shields.io/badge/Python-3.9+-3776AB?style=flat-square&logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=flat-square&logo=fastapi&logoColor=white)
 ![SQLite](https://img.shields.io/badge/SQLite-003B57?style=flat-square&logo=sqlite&logoColor=white)
@@ -67,6 +69,18 @@ python3 -m venv .venv                     # виртуальное окруже�
 
 > Дашборд работает только вместе с backend: если открыть `index.html` напрямую, данных не будет.
 
+## 🧪 Тесты
+
+Автотесты проверяют правила статусов, прогноз и все адреса API. Каждый тест работает со своей временной базой, настоящая `smart_city.db` не трогается.
+
+```bash
+cd backend
+.venv/bin/pip install -r requirements-dev.txt  # pytest и httpx (один раз)
+.venv/bin/python -m pytest -v
+```
+
+После каждого push GitHub Actions запускает тесты сам, на Python 3.9 и 3.12. Результат виден во вкладке **Actions** и на значке **Tests** вверху.
+
 ## 🔌 API
 
 | Метод и адрес | Что делает |
@@ -89,13 +103,18 @@ smart-city/
 │   ├── forecast.py        # прогноз трафика по часам
 │   ├── open_meteo.py      # загрузка настоящей погоды и воздуха
 │   ├── database.py        # работа с SQLite (smart_city.db)
-│   └── requirements.txt   # библиотеки Python
+│   ├── tests/             # автотесты pytest
+│   ├── requirements.txt   # библиотеки Python
+│   └── requirements-dev.txt  # библиотеки для тестов
 ├── frontend/
 │   ├── index.html         # разметка: карточки, карта, обращения, график, журнал
 │   ├── style.css          # оформление и цвета статусов
 │   └── app.js             # запросы к API и обновление страницы
-└── docs/
-    └── screenshot.png     # скриншот для README
+├── docs/
+│   └── screenshot.png     # скриншот для README
+└── .github/
+    ├── workflows/tests.yml   # GitHub Actions: запуск тестов
+    └── ISSUE_TEMPLATE/       # шаблоны для ошибок и идей
 ```
 
 ## 🗺️ Планы
@@ -106,6 +125,7 @@ smart-city/
 - [x] Frontend берёт данные из backend вместо своей симуляции
 - [x] Обращения жителей (POST / PATCH, проверка данных, защита от XSS)
 - [x] Прогноз трафика по часам (сезонная модель)
+- [x] Автотесты и GitHub Actions
 - [ ] Сравнить прогноз с ML-моделью (scikit-learn)
 - [ ] Деплой в интернет
 
@@ -113,6 +133,6 @@ smart-city/
 
 <div align="center">
 
-Учебный проект · [Aiganym Gadilova](https://github.com/Gadilova)
+Учебный проект · [Aiganym Gadilova](https://github.com/Gadilova) · лицензия [MIT](LICENSE)
 
 </div>
