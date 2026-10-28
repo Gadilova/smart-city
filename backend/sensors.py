@@ -25,6 +25,18 @@ PARKING_CAPACITY = sum(s["capacity"] for s in SENSORS if s["type"] == "parking")
 
 UNITS = {"traffic": "машин/мин", "air": "AQI", "parking": "свободных мест"}
 
+# «Типичный день» для трафика: сколько в среднем машин в минуту в каждый час (0..23).
+# Утром и вечером часы пик, ночью почти пусто — как в настоящем городе.
+TRAFFIC_PROFILE = [
+    12, 8, 6, 5, 6, 12,        # 00–05 ночь
+    30, 70, 105, 90, 65, 60,   # 06–11 утренний час пик
+    65, 60, 58, 62, 75, 98,    # 12–17 день
+    110, 92, 70, 50, 35, 20,   # 18–23 вечерний час пик и вечер
+]
+
+# Одни перекрёстки загруженнее других: множитель к «типичному дню»
+TRAFFIC_LOAD = {"traffic-1": 1.15, "traffic-2": 1.0, "traffic-3": 0.85}
+
 
 # ===== Правила: те же пороги, что были в app.js =====
 # Каждая функция возвращает уровень (ok / warn / danger) и текст статуса.
@@ -68,6 +80,12 @@ def read_air(real_aqi):
     return max(0, real_aqi + random.randint(-10, 10))
 
 
+def read_traffic(sensor_id, hour):
+    """Трафик по «типичному дню» для этого часа ± случайный разброс 15%."""
+    expected = TRAFFIC_PROFILE[hour] * TRAFFIC_LOAD[sensor_id]
+    return max(0, round(expected * random.uniform(0.85, 1.15)))
+
+
 def read_light():
     hour = datetime.now().hour
     is_night = hour < 6 or hour >= 20
@@ -77,9 +95,10 @@ def read_light():
 def simulate_readings(real_aqi, time):
     """Новое показание для каждого датчика на карте."""
     readings = []
+    hour = datetime.now().hour
     for sensor in SENSORS:
         if sensor["type"] == "traffic":
-            value = random.randint(10, 120)
+            value = read_traffic(sensor["id"], hour)
             level, status = check_traffic(value)
         elif sensor["type"] == "air":
             value = read_air(real_aqi)

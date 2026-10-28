@@ -10,6 +10,7 @@
 
 import asyncio
 from contextlib import asynccontextmanager
+from datetime import datetime
 from pathlib import Path
 
 from typing import Literal
@@ -20,6 +21,7 @@ from pydantic import BaseModel, Field
 
 import database
 import sensors
+from forecast import traffic_forecast
 from open_meteo import load_real_data
 
 SENSOR_INTERVAL = 3       # секунд между показаниями датчиков
@@ -36,7 +38,10 @@ def tick():
     time = database.now()
     readings = sensors.simulate_readings(real_data["aqi"], time)
     database.save_readings(readings)
-    database.save_city(sensors.city_summary(readings, real_data["aqi"], time))
+    summary = sensors.city_summary(readings, real_data["aqi"], time)
+    database.save_city(summary)
+    # Запоминаем трафик этого часа — из этой статистики строится прогноз
+    database.add_traffic_sample(datetime.now().hour, summary["traffic"])
 
 
 async def sensor_loop():
@@ -137,6 +142,12 @@ def get_city():
 def get_history(limit: int = Query(20, ge=1, le=500)):
     """История сводок для графика. ?limit=50 — сколько последних точек вернуть (от 1 до 500)."""
     return database.city_history(limit)
+
+
+@app.get("/api/forecast")
+def get_forecast(hours: int = Query(6, ge=1, le=12)):
+    """Прогноз среднего трафика по городу на ближайшие часы (от 1 до 12)."""
+    return traffic_forecast(hours)
 
 
 # ===== Обращения жителей =====

@@ -108,10 +108,15 @@ body {
   border-radius: 8px;
 }
 
-/* Карта OpenStreetMap светлая. Инвертируем цвета только у плиток карты,
+/* Карта Esri светлая. Инвертируем цвета только у плиток карты,
    чтобы она подходила к тёмному дашборду (кружки датчиков не меняются) */
 .leaflet-tile-pane {
   filter: invert(1) hue-rotate(180deg) brightness(0.9) contrast(0.9);
+}
+
+/* Фон карты, пока плитки ещё грузятся */
+.leaflet-container {
+  background: var(--bg);
 }
 
 .legend {
@@ -132,6 +137,44 @@ body {
 .dot.ok     { background: var(--ok); }
 .dot.warn   { background: var(--warn); }
 .dot.danger { background: var(--danger); }
+
+/* ===== Прогноз трафика ===== */
+
+/* Плитки по часам в одну строку; на узком экране переносятся */
+.forecast {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 12px;
+}
+
+.forecast-hour {
+  background: var(--bg);
+  border-radius: 8px;
+  padding: 12px;
+  text-align: center;
+  border-top: 4px solid var(--muted);
+}
+
+.forecast-hour.ok     { border-top-color: var(--ok); }
+.forecast-hour.warn   { border-top-color: var(--warn); }
+.forecast-hour.danger { border-top-color: var(--danger); }
+
+.forecast-hour .time {
+  margin: 0;
+  color: var(--muted);
+}
+
+.forecast-hour .number {
+  margin: 4px 0;
+  font-size: 1.6rem;
+  font-weight: bold;
+}
+
+.forecast-hour small {
+  display: block;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
 
 /* ===== Обращения жителей ===== */
 

@@ -127,9 +127,10 @@ const TYPE_TITLES = { traffic: "🚦 Трафик", air: "🌫️ Воздух",
 const map = L.map("map").setView([43.238, 76.92], 12);
 
 // Тайлы — это «плитки»-картинки, из которых складывается карта.
-// Берём бесплатную карту OpenStreetMap; подпись об авторах обязательна.
-L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+// Серверы OpenStreetMap блокируют сайты на localhost (вместо карты присылают «Access blocked»),
+// поэтому берём бесплатную подробную карту улиц Esri. Подпись об авторах обязательна.
+L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}", {
+  attribution: "Tiles &copy; Esri, HERE, Garmin, &copy; OpenStreetMap contributors",
   maxZoom: 19,
 }).addTo(map);
 
@@ -357,6 +358,45 @@ async function loadReports() {
   }
 }
 
+// ===== 6.5. Прогноз трафика =====
+
+const FORECAST_INTERVAL = 60 * 1000; // прогноз меняется медленно — хватит раз в минуту
+
+function renderForecast(forecast) {
+  const box = document.getElementById("forecast");
+  box.innerHTML = ""; // убираем старые плитки
+
+  for (const item of forecast) {
+    const tile = document.createElement("div");
+    tile.className = "forecast-hour " + item.level; // цвет полоски: ok / warn / danger
+
+    const time = document.createElement("p");
+    time.className = "time";
+    time.textContent = String(item.hour).padStart(2, "0") + ":00";
+
+    const number = document.createElement("p");
+    number.className = "number";
+    number.textContent = item.value;
+
+    const status = document.createElement("small");
+    status.textContent = item.status;
+
+    const source = document.createElement("small");
+    source.textContent = item.source;
+
+    tile.append(time, number, status, source);
+    box.append(tile);
+  }
+}
+
+async function loadForecast() {
+  try {
+    renderForecast(await getJSON("/api/forecast?hours=6"));
+  } catch (error) {
+    // Ошибку связи и так покажет refresh() в журнале, здесь молчим
+  }
+}
+
 // ===== 7. Обновление всей страницы =====
 
 let serverOnline = null; // null — ещё не знаем, true / false — последний результат
@@ -403,3 +443,6 @@ setInterval(updateClock, 1000); // часы каждую секунду
 
 refresh();
 setInterval(refresh, REFRESH_INTERVAL); // свежие данные с сервера каждые 3 секунды
+
+loadForecast();
+setInterval(loadForecast, FORECAST_INTERVAL); // прогноз раз в минуту

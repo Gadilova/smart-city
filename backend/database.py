@@ -65,6 +65,15 @@ def init_db():
                 created_at  TEXT NOT NULL,
                 resolved_at TEXT
             );
+
+            -- Средний трафик по часам суток: из этого «учится» прогноз.
+            -- Храним не все замеры, а сумму и количество — среднее = total / samples.
+            -- Эту таблицу тоже не чистим: чем дольше работает сервер, тем точнее прогноз
+            CREATE TABLE IF NOT EXISTS traffic_hourly (
+                hour    INTEGER PRIMARY KEY,  -- час суток 0..23
+                total   INTEGER NOT NULL,     -- сумма всех замеров за этот час
+                samples INTEGER NOT NULL      -- сколько было замеров
+            );
             """
         )
 
@@ -92,6 +101,26 @@ def save_city(summary):
             "INSERT INTO city_history (traffic, air, parking, light, created_at) VALUES (?, ?, ?, ?, ?)",
             (summary["traffic"], summary["air"], summary["parking"], summary["light"], summary["time"]),
         )
+
+
+def add_traffic_sample(hour, value):
+    """Добавляет замер к статистике часа. Если строки для часа ещё нет — создаёт её."""
+    with connect() as conn:
+        # UPSERT: INSERT, а если такой hour уже есть (ON CONFLICT) — UPDATE этой строки
+        conn.execute(
+            """
+            INSERT INTO traffic_hourly (hour, total, samples) VALUES (?, ?, 1)
+            ON CONFLICT(hour) DO UPDATE SET total = total + excluded.total, samples = samples + 1
+            """,
+            (hour, value),
+        )
+
+
+def traffic_by_hour():
+    """Средний трафик и число замеров для каждого часа: {час: (среднее, замеров)}."""
+    with connect() as conn:
+        rows = conn.execute("SELECT hour, total, samples FROM traffic_hourly").fetchall()
+    return {row["hour"]: (row["total"] / row["samples"], row["samples"]) for row in rows}
 
 
 def latest_readings():
